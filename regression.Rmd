@@ -1,0 +1,170 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+```{r}
+# Load the required libraries
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(forecast)
+library(lmtest)
+```
+
+```{r}
+library(GGally)
+
+#Read the data
+data = read.csv('final_dataset1.csv')
+
+# Convert the date column to a proper date format
+data$date <- mdy(data$date)
+
+data = data[data$date > '2001-01-01',]
+
+# Extract month and year as separate features
+data$month <- month(data$date)
+data$year <- year(data$date)
+x = data[,c('total_renewable_energy_consumption', 'total_energy_co2_emissions','coal_consumption')]
+ggpairs(x, xlab="",title = "Correlation Plot")
+
+# Split the data into training and testing sets
+test_start_date <- ymd("2020-01-01")  # Adjust the start date of the test data
+train_data <- data[data$date < test_start_date, ]
+test_data <- data[data$date >= test_start_date, ]
+
+# Build the multivariate regression model
+model <- lm(total_renewable_energy_consumption ~ crude_oil_domestic_first_purchase_price + coal_consumption + total_energy_co2_emissions + month + year, data = train_data)
+
+# Print the model summary
+summary(model)
+
+# Predict on the test data
+predictions <- predict(model, newdata = test_data)
+
+# Evaluate the model
+mse <- mean((predictions - test_data$total_renewable_energy_consumption)^2)
+rmse <- sqrt(mse)
+r_squared <- summary(model)$r.squared
+
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("R-squared:", r_squared, "\n")
+
+# Plot forecasts with actual testing data
+ggplot() +
+  geom_line(data = train_data, aes(x = date, y = total_renewable_energy_consumption), color = "gray", linetype = "solid", size = 1.2, alpha = 0.8) +
+  geom_line(data = test_data, aes(x = date, y = total_renewable_energy_consumption), color = "blue", linetype = "solid", size = 1.2, alpha = 0.8) +
+  geom_line(data = test_data, aes(x = date, y = predictions), color = "red", linetype = "dashed", size = 1.2, alpha = 0.8) +
+  labs(x = "Date", y = "Total Renewable Energy Consumption", title = "Actual vs. Forecasted Energy Consumption") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12))
+```
+
+```{r}
+#Read the data
+data = read.csv('final_dataset1.csv', header = T)
+data = data[337:600, ]
+# Convert the date column to a proper date format
+data$date <- mdy(data$date)
+
+
+# Split the data into training and testing sets
+test_start_date <- ymd("2020-01-01")  # Adjust the start date of the test data
+train_data <- data[data$date < test_start_date, ]
+test_data <- data[data$date >= test_start_date, ]
+
+# Build the multivariate regression model
+model <- lm(total_renewable_energy_consumption ~ coal_consumption + total_energy_co2_emissions, data = train_data)
+
+# Print the model summary
+summary(model)
+
+# Predict on the test data
+predictions <- predict(model, newdata = test_data)
+
+# Evaluate the model
+mse <- mean((predictions - test_data$total_renewable_energy_consumption)^2)
+mape <- mean(abs((predictions - test_data$total_renewable_energy_consumption)/test_data$total_renewable_energy_consumption))
+rmse <- sqrt(mse)
+r_squared <- summary(model)$r.squared
+mae <- mean(abs((predictions - test_data$total_renewable_energy_consumption)))
+
+cat("Root Mean Squared Error (RMSE):", rmse, "\n")
+cat("MAPE:", mape, "\n")
+cat("R-squared:", r_squared, "\n")
+
+# Plot forecasts with actual testing data
+ggplot() +
+  geom_line(data = train_data, aes(x = date, y = total_renewable_energy_consumption), color = "gray", linetype = "solid", size = 1.2, alpha = 0.8) +
+  geom_line(data = test_data, aes(x = date, y = total_renewable_energy_consumption), color = "red", linetype = "solid", size = 1, alpha = 0.8) +
+  geom_line(data = test_data, aes(x = date, y = predictions), color = "blue", linetype = "dashed", size = 1, alpha = 0.8) +
+  labs(x = "Date", y = "Total Renewable Energy Consumption", title = "Actual vs. Forecasted Energy Consumption") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 16),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.text = element_text(size = 12))
+
+```
+
+```{r}
+# Line plot of total renewable energy consumption over time
+ggplot(data, aes(x = date, y = total_renewable_energy_consumption)) +
+  geom_line() +
+  labs(x = "Date", y = "Total Renewable Energy Consumption", title = "Total Renewable Energy Consumption Over Time")
+
+# Scatter plot of renewable energy consumption vs. crude oil domestic first purchase price
+ggplot(data, aes(x = crude_oil_domestic_first_purchase_price, y = total_renewable_energy_consumption)) +
+  geom_point() +
+  labs(x = "Crude Oil Domestic First Purchase Price", y = "Total Renewable Energy Consumption", title = "Renewable Energy Consumption vs. Crude Oil Domestic First Purchase Price")
+
+# Scatter plot of renewable energy consumption vs. crude oil domestic first purchase price
+ggplot(data, aes(x = total_energy_co2_emissions, y = total_renewable_energy_consumption)) +
+  geom_point() +
+  labs(x = "Total Energy CO2 Emissions", y = "Total Renewable Energy Consumption", title = "Renewable Energy Consumption vs. Energy CO2 Emissions")
+
+# Scatter plot of renewable energy consumption vs. coal consumption
+ggplot(data, aes(x = coal_consumption, y = total_renewable_energy_consumption)) +
+  geom_point() +
+  labs(x = "Coal Consumption", y = "Total Renewable Energy Consumption", title = "Renewable Energy Consumption vs. Coal Consumption")
+
+# Boxplot of renewable energy consumption by month
+ggplot(data, aes(x = factor(month(date), labels = month.abb), y = total_renewable_energy_consumption)) +
+  geom_boxplot() +
+  labs(x = "Month", y = "Total Renewable Energy Consumption", title = "Renewable Energy Consumption by Month")
+```
+```{r}
+# 1. Check linearity assumption - Residuals vs. Fitted plot
+residuals_vs_fitted <- ggplot(model, aes(.fitted, .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(x = "Fitted Values", y = "Residuals", title = "Residuals vs. Fitted Values")
+
+# 2. Check independence assumption - Durbin-Watson test
+dw_test <- dwtest(model)
+
+# 3. Check normality assumption - Normal Q-Q plot of residuals
+qq_plot <- ggplot(model, aes(sample = resid)) +
+  stat_qq() +
+  stat_qq_line() +
+  labs(x = "Theoretical Quantiles", y = "Sample Quantiles", title = "Normal Q-Q Plot of Residuals")
+
+# 4. Check homoscedasticity assumption - Residuals vs. Fitted plot with a smooth line
+residuals_vs_fitted_smooth <- ggplot(model, aes(.fitted, .resid)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(x = "Fitted Values", y = "Residuals", title = "Residuals vs. Fitted Values (with Smooth Line)")
+
+# Print the results
+print(residuals_vs_fitted)
+print(dw_test)
+print(residuals_vs_fitted_smooth)
+```
+

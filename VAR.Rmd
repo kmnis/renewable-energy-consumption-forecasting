@@ -1,0 +1,157 @@
+---
+title: "VAR"
+author: "Jasmeet Singh Sandhu"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r hide}
+library(dplyr)
+library(zoo)
+library(forecast)
+library(tseries)
+library(MASS)
+library(TSA)
+library(vars)
+
+library('MuMIn') ## Needed for AICc
+```
+
+
+```{r}
+df = read.csv('final_dataset1.csv')
+# df$total_renewable_energy_consumption = df$total_renewable_energy_consumption / 10
+# df$crude_oil_domestic_first_purchase_price = df$crude_oil_domestic_first_purchase_price
+# df$coal_consumption = df$coal_consumption / 500
+# df$total_energy_co2_emissions = df$total_energy_co2_emissions/4
+tail(df)
+```
+
+
+```{r}
+series = ts(df, start = c(2001, 1), end = c(2022, 12), frequency = 12)
+
+train = window(series, start=c(2001, 1), end=c(2020, 12))
+test = window(series, start=c(2021, 1), end=c(2022, 12))
+```
+
+```{r}
+plot(series[, 'coal_consumption'], ylab = 'Series')
+```
+```{r}
+plot(series[, 'total_renewable_energy_consumption'], ylab = 'Series')
+```
+
+
+```{r}
+BoxCox.lambda(train[, 'coal_consumption'])
+BoxCox.lambda(train[, 'total_energy_co2_emissions'])
+BoxCox.lambda(train[, 'total_renewable_energy_consumption'])
+```
+
+```{r}
+consum = BoxCox(train[, 'total_renewable_energy_consumption'], lambda = 'auto')
+coal = BoxCox(train[, 'coal_consumption'], lambda = 'auto')
+co2 = BoxCox(train[, 'total_energy_co2_emissions'], lambda = 'auto')
+```
+
+```{r}
+cor(consum, coal)
+cor(consum, co2)
+```
+
+```{r}
+plot(consum, co2)
+```
+
+```{r}
+plot(diff(consum, 12))
+acf(diff(consum, 12))
+```
+```{r}
+plot(diff(coal, 12))
+acf(diff(coal, 12))
+```
+
+```{r}
+VARselect(cbind(consum, coal, co2), type = 'both', lag.max = 10, season = 12)
+```
+
+```{r}
+modelVAR = VAR(cbind(consum, coal, co2), p = 3, type = "both", season = 12)
+summary(modelVAR)
+```
+```{r}
+plot((predict(modelVAR, n.ahead = 24)))
+```
+```{r}
+pred = predict(modelVAR, n.ahead = 24)
+```
+```{r}
+plot(forecast(modelVAR, h = 24))
+```
+
+
+```{r}
+consum <- ts(InvBoxCox(pred$fcst$consum[,1], lambda = BoxCox.lambda(train[, 'total_renewable_energy_consumption'])), st = c(2021, 1), fr = 12)
+ts.plot(cbind(window(series[, 'total_renewable_energy_consumption'], start = c(2001, 1)),
+              consum), lty = 1:2, col = cbind('black', 'red'))
+```
+
+```{r}
+plot(train[, 'total_renewable_energy_consumption'])
+lines(consum, col="red")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=1)
+```
+
+```{r}
+coal <- ts(InvBoxCox(pred$fcst$coal[,1], lambda = BoxCox.lambda(train[, 'coal_consumption'])), st = c(2021, 1), fr = 12)
+ts.plot(cbind(window(train[, 'coal_consumption'], start = c(2001)), coal), lty = 1:2)
+```
+
+```{r}
+acf(resid(modelVAR)[, 1])
+```
+
+```{r}
+acf(resid(modelVAR))
+```
+```{r}
+ts(InvBoxCox(pred$fcst$consum[, 1], lambda = BoxCox.lambda(train[, 'total_renewable_energy_consumption'])), st = c(2021, 1), fr = 12)
+test[, 'total_renewable_energy_consumption']
+```
+
+```{r}
+plot(ts(InvBoxCox(pred$fcst$coal[, 1], lambda = BoxCox.lambda(train[, 'total_renewable_energy_consumption'])), st = c(2021, 1), fr = 12), ylim = c(800, 1200), col = 'blue')
+lines(test[, 'total_renewable_energy_consumption'], col = 'red', lty = 2)
+```
+```{r}
+plot(ts(InvBoxCox(pred$fcst$consum[, 1], lambda = BoxCox.lambda(train[, 'total_renewable_energy_consumption'])), st = c(2021, 1), fr = 12), ylim = c(800, 1200), col = 'blue')
+lines(test[, 'total_renewable_energy_consumption'], col = 'red', lty = 2)
+```
+
+```{r}
+acf(residuals(modelVAR)[, 4], main = 'Oil Prices Residuals ACF')
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

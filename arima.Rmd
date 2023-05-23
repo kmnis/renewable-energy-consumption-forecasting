@@ -1,0 +1,109 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+# Load the required libraries
+library(tidyverse)
+library(lubridate)
+library(forecast)
+library(tseries)
+
+# Read the data
+data <- read.csv("final_dataset1.csv")
+
+# Convert the date column to a proper date format
+data$date <- mdy(data$date)
+
+# Create a time series object
+ts_data <- ts(data$total_renewable_energy_consumption, frequency = 12, start = c(1973,1,1))
+
+ts_data <- window(ts_data, start = c(2001, 01))
+
+tsdisplay(ts_data)
+
+# Split the data into training and testing sets
+test_start <- length(ts_data) - 11  # Use the last 12 months as the test set
+train_data <- window(ts_data, end = c(2020, 12))
+test_data <- window(ts_data, start = c(2021, 01))
+
+# Decompose the time series
+decomposed_data <- decompose(train_data)
+
+# Plot the decomposed time series
+plot(decomposed_data)
+
+# Box Cox
+train_data_bc = BoxCox(train_data, lambda = BoxCox.lambda(train_data))
+
+# Perform the ADF test for stationarity
+adf_test <- adf.test(train_data_bc)
+cat("ADF test p-value:", adf_test$p.value, "\n")
+
+# Perform the KPSS test for stationarity
+kpss_test <- kpss.test(train_data_bc)
+cat("KPSS test p-value:", kpss_test$p.value, "\n")
+```
+
+```{r}
+# Difference the time series if necessary
+differenced_ts <- diff(train_data_bc, lag = 12)
+
+# Plot the differenced time series
+tsdisplay(differenced_ts)
+
+# Perform the ADF test for stationarity on the differenced time series
+adf_test_diff <- adf.test(differenced_ts)
+cat("ADF test p-value (differenced series):", adf_test_diff$p.value, "\n")
+
+# Perform the KPSS test for stationarity on the differenced time series
+kpss_test_diff <- kpss.test(differenced_ts)
+cat("KPSS test p-value (differenced series):", kpss_test_diff$p.value, "\n")
+```
+
+```{r}
+# Difference the time series if necessary
+differenced_ts_1 <- diff(differenced_ts)
+
+# Plot the differenced time series
+tsdisplay(differenced_ts_1)
+
+# Perform the ADF test for stationarity on the differenced time series
+adf_test_diff <- adf.test(differenced_ts_1)
+cat("ADF test p-value (differenced series):", adf_test_diff$p.value, "\n")
+
+# Perform the KPSS test for stationarity on the differenced time series
+kpss_test_diff <- kpss.test(differenced_ts_1)
+cat("KPSS test p-value (differenced series):", kpss_test_diff$p.value, "\n")
+```
+
+```{r}
+# Determine the order of differencing (if needed)
+auto_arima_result <- auto.arima(train_data, seasonal = TRUE, lambda = 'auto')
+
+# Check summary
+summary(auto_arima_result)
+
+# Check residuals
+checkresiduals(auto_arima_result)
+```
+
+```{r}
+# Forecast future values
+forecasted_values <- forecast(auto_arima_result, h = length(test_data))
+
+# Plot the actual data and the forecasted values
+plot(forecasted_values, main = "Forecasted Total Renewable Energy Consumption")
+lines(x=c(time(test_data)), y=test_data , col="red")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=1)
+```
+
+
+```{r}
+# Check error metrics
+accuracy(forecasted_values)
+```
+

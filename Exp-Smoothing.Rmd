@@ -1,0 +1,189 @@
+---
+title: "Exponential Smoothing"
+author: "Manish Kumar"
+date: "May 08, 2023"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+```{r}
+suppressMessages(suppressWarnings(library(forecast)))
+suppressWarnings(suppressMessages(library(fpp)))
+
+data = read.csv(file="../final_dataset1.csv", header=T)
+totRenEnrgConsp = ts(data$total_renewable_energy_consumption, start = c(1973, 1), frequency=12)
+totRenEnrgConsp = window(totRenEnrgConsp, start = c(2001, 1))
+plot(totRenEnrgConsp, xlab="Year", ylab="Total Renewable Energy Consumption", main="Total Renewable Energy Consumption")
+```
+
+```{r}
+## Multiplicative
+# Decompose the time series
+decomposeM = decompose(totRenEnrgConsp, type="multiplicative")
+
+# Plot the seasonal component
+plot(decomposeM)
+```
+
+```{r}
+# Split into train and test sets
+train_data = window(totRenEnrgConsp, end = c(2020, 12))
+test_data = window(totRenEnrgConsp, start = c(2021, 1))
+
+ets.fit = ets(train_data, model="ZAM")
+f1 = forecast(ets.fit, h=length(test_data))
+summary(ets.fit)
+accuracy(f1, test_data)
+```
+
+```{r}
+# Make the forecast plot
+plot(f1, xlab="Time")
+
+# Plot actual values
+lines(test_data , col="red", lty=2)
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=c(2, 1))
+```
+
+```{r}
+# Make the forecast plot
+plot(test_data, xlab="", col="red", lty=2, ylab="", xaxt="n")
+axis(side=1, at=2021:2023)
+# Plot actual values
+lines(f1$mean , col="blue", lty=1)
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=c(2, 1))
+```
+```{r}
+checkresiduals(f1)
+```
+
+```{r}
+f2 = hw(train_data, h=length(test_data), seasonal="additive", damped=FALSE)
+plot(f2)
+lines(x=c(time(f2$mean)), y =test_data , col="red")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=1)
+```
+
+
+```{r}
+f3 = hw(train_data, h=length(test_data), seasonal="multiplicative", damped=FALSE)
+plot(f3)
+lines(x=c(time(f3$mean)), y=test_data , col="red")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=1)
+accuracy(f3, test_data)
+```
+
+
+```{r}
+f4 = hw(train_data, h=length(test_data), seasonal="additive", damped=TRUE)
+plot(f4)
+lines(x=c(time(f4$mean)), y=test_data , col="red")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=1)
+```
+
+
+```{r}
+f5 = hw(train_data, h=length(test_data), seasonal="multiplicative", damped=TRUE)
+plot(f5)
+lines(x=c(time(f5$mean)), y=test_data , col="red")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=1)
+```
+
+```{r}
+f6 = hw(train_data, exponential=TRUE, h=length(test_data), seasonal="multiplicative", damped=T)
+# f6 = forecast(f6, h=60)
+plot(f6)
+lines(x=c(time(f6$mean)), y=test_data , col="red")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=1)
+```
+
+
+```{r}
+f7 = hw(train_data, exponential=TRUE, h=length(test_data), seasonal="multiplicative", damped=F)
+plot(f7)
+lines(x=c(time(f7$mean)), y=test_data , col="red")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=1)
+```
+
+```{r}
+f8 = ets(train_data, model="MAM", damped=NULL)
+f8 = forecast(f8, h=length(test_data))
+plot(f8)
+lines(x=c(time(f8$mean)), y=test_data , col="red")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=1)
+accuracy(f8, test_data)
+```
+
+```{r}
+accuracy(f1, test_data)
+accuracy(f2, test_data)
+accuracy(f3, test_data)
+accuracy(f4, test_data)
+accuracy(f5, test_data)
+accuracy(f6, test_data)
+accuracy(f7, test_data)
+accuracy(f8, test_data)
+```
+
+
+```{r}
+summary(f1)$model$aicc
+summary(f2)$model$aicc
+summary(f3)$model$aicc
+summary(f4)$model$aicc
+summary(f5)$model$aicc
+summary(f6)$model$aicc
+summary(f7)$model$aicc
+summary(f8)$model$aicc
+```
+
+```{r}
+checkresiduals(f1)
+```
+
+```{r}
+# plot(logcost, xlab = 'Time', col=1, ylab = 'log(Cost) & log(CPI)', ylim = c(3.2,4.8))
+# lines(logcpi, col=2)
+# legend('bottomright',legend=c('log(Cost)','log(CPI)'), col=c(1,2), lty=1)
+```
+
+```{r}
+# write.csv(f1, file = "f1.csv", row.names = T)
+# write.csv(f2, file = "f2.csv", row.names = T)
+# write.csv(f3, file = "f3.csv", row.names = T)
+# write.csv(f4, file = "f4.csv", row.names = T)
+# write.csv(f5, file = "f5.csv", row.names = T)
+# write.csv(f6, file = "f6.csv", row.names = T)
+# write.csv(f7, file = "f7.csv", row.names = T)
+# write.csv(f8, file = "f8.csv", row.names = T)
+
+```
+
+```{r}
+# train_df = data.frame(Date=as.yearmon(time(train_data)), Value=as.vector(train_data))
+# test_df = data.frame(Date=as.yearmon(time(test_data)), Value=as.vector(test_data))
+
+# write.csv(train_df, file = "train_data.csv", row.names = T)
+# write.csv(test_df, file = "test_data.csv", row.names = T)
+```
+
+```{r}
+f3 = hw(train_data, h=length(test_data), seasonal="multiplicative", damped=FALSE)
+plot(f3, col = 'red')
+#lines(x=c(time(f3$mean)), y=test_data , col="blue")
+legend("topleft", legend=c("Actual", "Forecast"), col=c("blue", "red"), lty=1)
+```
+
+
+
+
+
+
+
+
+```{r}
+monthplot(totRenEnrgConsp)
+```
