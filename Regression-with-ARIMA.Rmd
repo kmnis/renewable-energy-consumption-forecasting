@@ -1,0 +1,216 @@
+---
+title: "Time Series Final project"
+author: "Devdutt Sharma"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(forecast)
+library(fpp)
+library(tseries)
+library(ggplot2)
+library(TSA)
+library(MuMIn)
+library(dplyr)
+library(vars)
+getwd()
+setwd('C:/Users/Devdutt/Desktop/0Time Series/Final project')
+```
+```{r}
+data <- read.csv('final_dataset1.csv',header=T)
+```
+
+```{r}
+head(data)
+```
+
+
+#### Renewable
+```{r}
+renewable <- ts(data$total_renewable_energy_consumption, start = c(1973,1), frequency = 12)
+tail(renewable)
+```
+```{r}
+tsdisplay(renewable)
+plot(renewable, ylab = "Renewable Energy Consumption (Trillion BTU)")
+```
+
+We see that there is a clear trend from January 2001. So we will split the data.
+
+```{r}
+data <- data[337:600,]
+head(data)
+```
+
+#### Crude Oil
+```{r}
+crude_price <- ts(data$crude_oil_domestic_first_purchase_price, start = c(2001,1), frequency = 12)
+tail(crude_price)
+```
+
+```{r}
+tsdisplay(crude_price)
+```
+
+#### Coal consumption
+```{r}
+coal <- ts(data$coal_consumption, start = c(2001,1), frequency = 12)
+tail(coal)
+tsdisplay(coal)
+```
+
+#### CO2 emmissions
+```{r}
+co2 <- ts(data$total_energy_co2_emissions, start = c(2001,1), frequency = 12)
+tail(co2)
+tsdisplay(co2)
+```
+
+
+#### Renewable
+```{r}
+renewable <- ts(data$total_renewable_energy_consumption, start = c(2001,1), frequency = 12)
+tail(renewable)
+tsdisplay(renewable)
+```
+```{r}
+renewable_train <- window(renewable, start = c(2001,1), end = c(2020,12))
+renewable_test <- window(renewable, start = c(2021,1), end = c(2022,12))
+co2_train <- window(co2, start = c(2001,1), end = c(2020,12))
+co2_test <- window(co2, start = c(2021,1), end = c(2022,12))
+coal_train <- window(coal, start = c(2001,1), end = c(2020,12))
+coal_test <- window(coal, start = c(2021,1), end = c(2022,12))
+crude_train <- window(crude_price, start = c(2001,1), end = c(2020,12))
+crude_test <- window(crude_price, start = c(2021,1), end = c(2022,12))
+```
+
+```{r}
+data1 <- data[1:240,c("total_energy_co2_emissions", "coal_consumption")]
+data2 <- data[241:264,c("total_energy_co2_emissions", "coal_consumption")]
+```
+
+```{r}
+plot(renewable, ylab = "Renewable Energy Consumption (Trillion BTU)")
+lambda = BoxCox.lambda(renewable_train)
+lambda
+stable_renewable_train <- (renewable_train ^ lambda - 1) / lambda
+plot(stable_renewable_train, ylab = "Renewable Energy Consumption (Trillion BTU)")
+```
+
+
+```{r}
+plot(co2, ylab = "CO2 emmission (Million Metric Tons)")
+lambda_co2 = BoxCox.lambda(co2_train)
+lambda_co2
+stable_co2_train <- (co2_train ^ lambda_co2 - 1) / lambda_co2
+plot(stable_co2_train)
+```
+
+```{r}
+plot(coal, ylab = "Coal Consumption (1000 Short Tons)")
+lambda_coal = BoxCox.lambda(coal_train)
+lambda_coal
+stable_coal_train <- (coal_train ^ lambda_coal - 1) / lambda_coal
+plot(stable_coal_train)
+```
+
+
+```{r}
+plot(crude_train)
+lambda_crude = BoxCox.lambda(crude_train)
+lambda_crude
+stable_crude_train <- log(crude_train)
+plot(stable_crude_train)
+```
+
+
+```{r}
+kpss.test(stable_renewable_train)
+```
+p-value = 0.01 < 0.05 ==> Reject Null hypothesis ==> **The process is not stationary.**
+
+```{r}
+plot(diff(stable_renewable_train,12))
+```
+```{r}
+tsdisplay(diff(stable_renewable_train,12))
+```
+
+
+```{r}
+kpss.test(diff(stable_renewable_train,12))
+```
+p-value = 0.1 > 0.05 ==> Accept Null hypothesis ==> The process is stationary.
+
+```{r}
+data1$total_energy_co2_emissions <-  (data1$total_energy_co2_emissions ^ lambda_co2 - 1) / lambda_co2
+data2$total_energy_co2_emissions <-  (data2$total_energy_co2_emissions ^ lambda_co2 - 1) / lambda_co2
+
+data1$coal_consumption <-  (data1$coal_consumption ^ lambda_coal - 1) / lambda_coal
+data2$coal_consumption <-  (data2$coal_consumption ^ lambda_coal - 1) / lambda_coal
+```
+
+
+```{r}
+model = auto.arima(renewable_train, trace = FALSE, seasonal = TRUE, lambda = lambda)
+summary(model)
+```
+```{r}
+model_forecast <- forecast(model, h = 24)
+```
+
+```{r}
+plot(model_forecast)
+lines(renewable_test, col=2, lty = 'dashed')
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=c(2,1))
+```
+```{r}
+# Make the forecast plot
+plot(renewable_test, xlab="", col="red", lty=2, ylab="", xaxt="n")
+axis(side=1, at=2021:2023)
+# Plot actual values
+lines(model_forecast$mean , col="blue", lty=1)
+```
+
+
+```{r}
+accuracy(model_forecast, renewable_test)
+```
+
+
+```{r}
+model_reg = auto.arima(renewable_train, trace = TRUE, seasonal = TRUE, xreg = as.matrix(data1), lambda = lambda, D = 1, d=0)
+summary(model_reg)
+```
+
+```{r}
+model_reg_forecast <- forecast(model_reg, h = 24, xreg = as.matrix(data2))
+```
+
+
+
+
+```{r}
+plot(model_reg_forecast)
+lines(renewable_test, col=2, lty = 'dashed')
+legend("topleft", legend=c("Actual", "Forecast"), col=c("red", "blue"), lty=c(2,1))
+```
+
+```{r}
+accuracy(model_reg_forecast, renewable_test)
+```
+
+```{r}
+checkresiduals(model_reg_forecast)
+```
+
+```{r}
+# Make the forecast plot
+plot(renewable_test, xlab="", col="red", lty=2, ylab="", xaxt="n")
+axis(side=1, at=2021:2023)
+# Plot actual values
+lines(model_reg_forecast$mean , col="blue", lty=1)
+```
+
