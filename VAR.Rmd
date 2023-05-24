@@ -19,7 +19,7 @@ library('MuMIn') ## Needed for AICc
 
 
 ```{r}
-df = read.csv('final_dataset1.csv')
+df = read.csv('data/final_dataset1.csv')
 # df$total_renewable_energy_consumption = df$total_renewable_energy_consumption / 10
 # df$crude_oil_domestic_first_purchase_price = df$crude_oil_domestic_first_purchase_price
 # df$coal_consumption = df$coal_consumption / 500

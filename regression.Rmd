@@ -17,7 +17,7 @@ library(lmtest)
 library(GGally)
 
 #Read the data
-data = read.csv('final_dataset1.csv')
+data = read.csv('data/final_dataset1.csv')
 
 # Convert the date column to a proper date format
 data$date <- mdy(data$date)
@@ -68,7 +68,7 @@ ggplot() +
 
 ```{r}
 #Read the data
-data = read.csv('final_dataset1.csv', header = T)
+data = read.csv('data/final_dataset1.csv', header = T)
 data = data[337:600, ]
 # Convert the date column to a proper date format
 data$date <- mdy(data$date)

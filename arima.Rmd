@@ -13,7 +13,7 @@ library(forecast)
 library(tseries)
 
 # Read the data
-data <- read.csv("final_dataset1.csv")
+data <- read.csv("data/final_dataset1.csv")
 
 # Convert the date column to a proper date format
 data$date <- mdy(data$date)

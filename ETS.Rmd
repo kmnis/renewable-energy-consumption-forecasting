@@ -13,7 +13,7 @@ output:
 suppressMessages(suppressWarnings(library(forecast)))
 suppressWarnings(suppressMessages(library(fpp)))
 
-data = read.csv(file="../final_dataset1.csv", header=T)
+data = read.csv(file="data/final_dataset1.csv", header=T)
 totRenEnrgConsp = ts(data$total_renewable_energy_consumption, start = c(1973, 1), frequency=12)
 totRenEnrgConsp = window(totRenEnrgConsp, start = c(2001, 1))
 plot(totRenEnrgConsp, xlab="Year", ylab="Total Renewable Energy Consumption", main="Total Renewable Energy Consumption")

@@ -16,10 +16,9 @@ library(MuMIn)
 library(dplyr)
 library(vars)
 getwd()
-setwd('C:/Users/Devdutt/Desktop/0Time Series/Final project')
 ```
 ```{r}
-data <- read.csv('final_dataset1.csv',header=T)
+data <- read.csv('data/final_dataset1.csv',header=T)
 ```
 
 ```{r}
